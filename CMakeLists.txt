@@ -21,7 +21,7 @@
 #
 
 # Core project settings
-project("lab2_test2")
+project("stm32_cmsis_vscode_template")
 enable_language(C CXX ASM)
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
