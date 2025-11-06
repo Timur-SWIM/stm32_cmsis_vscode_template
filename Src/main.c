@@ -26,7 +26,7 @@ uint8_t	cnt = 0;
 char led_num = 0x003F;
 const uint16_t reset_value = 0x7FFF;
 
-void set_led_num(uint8_t cnt)
+void setDisplay(uint8_t cnt)
 {
 	switch (cnt)
 	{
@@ -84,7 +84,7 @@ void initLED(void)
 	GPIOC->CRL |= GPIO_CRL_MODE6;		/*	MODE=11, Output 50 MHZ для 6 пина	*/
 }
 
-static void initTIM3(void)
+static void initEncoderTIM3(void)
 {
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 		// Enable GPIOA clock
     RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; 		// Enable TIM3 clock
@@ -97,21 +97,13 @@ static void initTIM3(void)
     TIM3->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);    // Rising edge polarity
     TIM3->SMCR = TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0;      // Enable encoder mode 3 (Counts on both TI1 and TI2 edges)
     TIM3->CR1 |= TIM_CR1_CEN;                          // Enable timer
+	TIM3->CCMR1 |= (TIM_CCMR1_IC1F_0 | TIM_CCMR1_IC1F_1 | TIM_CCMR1_IC2F_0 | TIM_CCMR1_IC2F_1); //  fSAMPLING = fCK_INT / 32, N = 8
  
     TIM3->CNT = 36;                   // Reset cnt
 }
 
 void getEncoderData(void)
 {
-	// if (TIM3->CNT > 72)
-	// {
-	// 	TIM3->CNT = 72;
-	// }
-
-	// if (TIM3->CNT < 36)
-	// {
-	// 	TIM3->CNT = 36;
-	// }
 	LIMIT_UP_CNT();
 	LIMIT_DOWN_CNT();
 	cnt = (uint8_t)((TIM3->CNT - 36) / 4);
@@ -212,11 +204,11 @@ int main(void)
 	initLED();
 	init_button();
 	initTIM2();
-	initTIM3();
+	initEncoderTIM3();
     while(true)
     {
     	getEncoderData();
-    	set_led_num(cnt);
+    	setDisplay(cnt);
     }
 }
 
