@@ -23,7 +23,6 @@
 
 uint8_t	cnt = 0;
 char led_num = 0x003F;
-const uint16_t reset_value = 0x7FFF;
 
 void set_led_num(uint8_t cnt)
 {
@@ -64,53 +63,55 @@ void set_led_num(uint8_t cnt)
 	SET_LED_NUM(led_num);
 }
 
-void initL(void)
+void init_led_num(void)
 {
 	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;	/*	Включаем тактирование порта C	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF0;		/*	CNF=00 push-pull для 0 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE0;		/*	MODE=11, Output 50 MHZ для 0 пина	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF1;		/*	CNF=00 push-pull для 1 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE1;		/*	MODE=11, Output 50 MHZ для 1 пина	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF2;		/*	CNF=00 push-pull для 2 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE2;		/*	MODE=11, Output 50 MHZ для 2 пина	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF3;		/*	CNF=00 push-pull для 3 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE3;		/*	MODE=11, Output 50 MHZ для 3 пина	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF4;		/*	CNF=00 push-pull для 4 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE4;		/*	MODE=11, Output 50 MHZ для 4 пина	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF5;		/*	CNF=00 push-pull для 5 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE5;		/*	MODE=11, Output 50 MHZ для 5 пина	*/
-	GPIOC->CRL &=~GPIO_CRL_CNF6;		/*	CNF=00 push-pull для 6 пина	*/
-	GPIOC->CRL |= GPIO_CRL_MODE6;		/*	MODE=11, Output 50 MHZ для 6 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF0;		/*	CNF=00 для 0 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE0;		/*	MODE=11, Output 50 для 5 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF1;		/*	CNF=00 для 1 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE1;		/*	MODE=11, Output 50 для 5 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF2;		/*	CNF=00 для 2 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE2;		/*	MODE=11, Output 50 для 5 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF3;		/*	CNF=00 для 3 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE3;		/*	MODE=11, Output 50 для 5 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF4;		/*	CNF=00 для 4 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE4;		/*	MODE=11, Output 50 для 5 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF5;		/*	CNF=00 для 5 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE5;		/*	MODE=11, Output 50 для 5 пина	*/
+	GPIOC->CRL &=~GPIO_CRL_CNF6;		/*	CNF=00 для 6 пина	*/
+	GPIOC->CRL |= GPIO_CRL_MODE6;		/*	MODE=11, Output 50 для 5 пина	*/
 }
 
-static void initTIM3(void)
+
+const uint16_t reset_value = 0x7FFF;
+static void init_decoder_TIM3(void)
 {
-    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 		// Enable GPIOA clock
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; 		// Enable TIM3 clock
-    // Configure Pins 6 and 7 of Port A as alternate function inputs
-    GPIOA->CRL &= ~(GPIO_CRL_CNF6 | GPIO_CRL_CNF7);
-    GPIOA->CRL |= (GPIO_CRL_CNF6_1 | GPIO_CRL_CNF7_1);
-	// Configure TIM3 for encoder interface                                                                     
+
+    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
+    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;                // Enable clock for TIM2                                               // TIM3->CR1 = 0;                                     // Disable timer
     TIM3->ARR = 73;
     TIM3->CCMR1 = TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_0; // Capture on TI1 and TI2
-    TIM3->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);    // Rising edge polarity
-    TIM3->SMCR = TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0;      // Enable encoder mode 3 (Counts on both TI1 and TI2 edges)
+    TIM3->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);
+    TIM3->SMCR = TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0;      // Enable encoder mode
     TIM3->CR1 |= TIM_CR1_CEN;                          // Enable timer
- 
+    // Configure Pins 0 and 1 of Port A as alternate function inputs
+    GPIOA->CRL &= ~(GPIO_CRL_CNF6 | GPIO_CRL_CNF7);
+    GPIOA->CRL |= (GPIO_CRL_CNF6_1 | GPIO_CRL_CNF7_1);
+    // Configure encoder interface
     TIM3->CNT = 36;                   // Reset cnt
 }
 
 void encoder_read(void)
 {
-	// if (TIM3->CNT > 72)
-	// {
-	// 	TIM3->CNT = 72;
-	// }
+	if (TIM3->CNT > 72)
+	{
+		TIM3->CNT = 72;
+	}
 
-	// if (TIM3->CNT < 36)
-	// {
-	// 	TIM3->CNT = 36;
-	// }
+	if (TIM3->CNT < 36)
+	{
+		TIM3->CNT = 36;
+	}
 	cnt = (uint8_t)((TIM3->CNT - 36) / 4);
 }
 
@@ -206,10 +207,10 @@ void init_tim2()
 int main(void)
 {
 	init_clk();
-	initL();
+	init_led_num();
 	init_button();
 	init_tim2();
-	initTIM3();
+	init_decoder_TIM3();
     while(true)
     {
     	encoder_read();
