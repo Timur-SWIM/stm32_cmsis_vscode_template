@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "main.h"
+#include "global.h"
 #include <string.h>
 
 uint8_t	cnt = 0;
@@ -30,41 +31,41 @@ void set_led_num(uint8_t cnt)
 	switch (cnt)
 	{
 	case 0:
-		led_num = 0x003F;
+		led_num = LED_0;
 		break;
 	case 1:
-		led_num = 0x0006;
+		led_num = LED_1;
 		break;
 	case 2:
-		led_num = 0x005B;
+		led_num = LED_2;
 		break;
 	case 3:
-		led_num = 0x004F;
+		led_num = LED_3;
 		break;
 	case 4:
-		led_num = 0x0066;
+		led_num = LED_4;
 		break;
 	case 5:
-		led_num = 0x006D;
+		led_num = LED_5;
 		break;
 	case 6:
-		led_num = 0x007D;
+		led_num = LED_6;
 		break;
 	case 7:
-		led_num = 0x0007;
+		led_num = LED_7;
 		break;
 	case 8:
-		led_num = 0x007F;
+		led_num = LED_8;
 		break;
 	case 9:
-		led_num = 0x006F;
+		led_num = LED_9;
 		break;
 	}
 
 	SET_LED_NUM(led_num);
 }
 
-void initL(void)
+void initLED(void)
 {
 	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;	/*	Включаем тактирование порта C	*/
 	GPIOC->CRL &=~GPIO_CRL_CNF0;		/*	CNF=00 push-pull для 0 пина	*/
@@ -100,7 +101,7 @@ static void initTIM3(void)
     TIM3->CNT = 36;                   // Reset cnt
 }
 
-void encoder_read(void)
+void getEncoderData(void)
 {
 	// if (TIM3->CNT > 72)
 	// {
@@ -111,6 +112,8 @@ void encoder_read(void)
 	// {
 	// 	TIM3->CNT = 36;
 	// }
+	LIMIT_UP_CNT();
+	LIMIT_DOWN_CNT();
 	cnt = (uint8_t)((TIM3->CNT - 36) / 4);
 }
 
@@ -190,7 +193,7 @@ void init_clk(void)												/*Настройка внешнего генер�
 	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL){};
 }
 
-void init_tim2()
+void initTIM2(void)
 {
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;		/*Включаем тактирование на шине APB1, на которой таймер*/
 											/*Нужен 1Гц: делим 64МГц на 64000, потом на 1000*/
@@ -200,21 +203,20 @@ void init_tim2()
 	TIM2->DIER |= TIM_DIER_UIE;
 	TIM2->CR1 |= TIM_CR1_CEN;				/*CEN - cnt Enable, разрешаем подсчет*/
 	NVIC_EnableIRQ(TIM2_IRQn);				/*Разрешаем NVIC обработку прерываний*/
-	NVIC_SetPriority(TIM2_IRQn, 0);			/*Выставляем приоритет единицу*/
+	NVIC_SetPriority(TIM2_IRQn, 2);			/*Выставляем приоритет единицу*/
 }
 
 int main(void)
 {
 	init_clk();
-	initL();
+	initLED();
 	init_button();
-	init_tim2();
+	initTIM2();
 	initTIM3();
     while(true)
     {
-    	encoder_read();
+    	getEncoderData();
     	set_led_num(cnt);
-
     }
 }
 
