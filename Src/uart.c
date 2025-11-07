@@ -4,26 +4,36 @@ char RxBuffer[RX_BUFF_SIZE];			//Буфер приёма USART
 char TxBuffer[TX_BUFF_SIZE];			//Буфер передачи USART
 volatile bool ComReceived;				//Флаг приёма строки данных
 
-/**
-  * @brief  Обработчик прерывания от USART2
-  * @param  None
-  * @retval None
-  */
+volatile uint8_t RxIndex = 0;
+
 void USART2_IRQHandler(void)
 {
-	if ((USART2->SR & USART_SR_RXNE)!=0)		//Прерывание по приёму данных
-	{
-		uint8_t pos = strlen(RxBuffer);			//Вычисляем позицию свободной ячейки
+    if ((USART2->SR & USART_SR_RXNE) == 0)
+    {
+        char data = USART2->DR;
 
-		RxBuffer[pos] = USART2->DR;				//Считываем содержимое регистра данных
+        if (RxIndex < RX_BUFF_SIZE - 1)
+        {
+            RxBuffer[RxIndex++] = data;
 
-		if ((RxBuffer[pos]== 0x0A) && (RxBuffer[pos-1]== 0x0D))							//Если это символ конца строки
-		{
-			ComReceived = true;					//- выставляем флаг приёма строки
-			return;								//- и выходим
-		}
-	}
+            // Проверяем, что в буфере как минимум 2 символа
+            if (RxIndex > 1 &&
+                RxBuffer[RxIndex - 1] == '\n' &&
+                RxBuffer[RxIndex - 2] == '\r')
+            {
+                RxBuffer[RxIndex] = '\0';  // Завершаем строку
+                ComReceived = true;
+                RxIndex = 0;               // Сброс индекса
+            }
+        }
+        else
+        {
+            // Переполнение буфера — сброс
+            RxIndex = 0;
+        }
+    }
 }
+
 
 /**
   * @brief  Инициализация USART2
@@ -143,7 +153,7 @@ void ExecuteCommand(void)
 	ComReceived = false;									//Сбрасываем флаг приёма строки
 }
 
-bool COM_REСEIVED(void)
+bool COM_RECIVED(void)
 {
     return ComReceived;
 }

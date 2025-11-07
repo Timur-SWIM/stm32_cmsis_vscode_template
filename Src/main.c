@@ -84,7 +84,7 @@ int main(void)
     	getEncoderData();
 		cnt = getCntValue();
     	setDisplay(cnt);
-		if (COM_RECEIVED()) {
+		if (COM_RECIVED()) {
 			ExecuteCommand();
 		}
     }
