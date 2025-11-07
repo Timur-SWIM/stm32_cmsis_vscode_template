@@ -45,6 +45,7 @@ set(sources_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/encoder.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/display.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/uart.c
 )
 
 # Include directories for all compilers

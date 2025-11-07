@@ -22,6 +22,7 @@
 #include "encoder.h"
 #include "display.h"
 #include "global.h"
+#include "uart.h"
 #include <string.h>
 
 void delay(uint32_t delay_value)
@@ -76,12 +77,16 @@ int main(void)
 	init_button();
 	initTIM2();
 	initEncoderTIM3();
+	initUSART2();
 	uint8_t cnt = 0;
     while(true)
     {
     	getEncoderData();
 		cnt = getCntValue();
     	setDisplay(cnt);
+		if (COM_RECEIVED()) {
+			ExecuteCommand();
+		}
     }
 }
 
