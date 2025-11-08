@@ -16,8 +16,8 @@ void initEncoderTIM3(void)
     TIM3->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);    // Rising edge polarity
     TIM3->SMCR = TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0;      // Enable encoder mode 3 (Counts on both TI1 and TI2 edges)
     TIM3->CR1 |= TIM_CR1_CEN;                          // Enable timer
-	TIM3->CCMR1 |= (TIM_CCMR1_IC1F_0 | TIM_CCMR1_IC1F_1 | TIM_CCMR1_IC2F_0 | TIM_CCMR1_IC2F_1); //  fSAMPLING = fCK_INT / 32, N = 8
- 
+    TIM3->CCMR1 |= (TIM_CCMR1_IC1F_3 | TIM_CCMR1_IC1F_2 | TIM_CCMR1_IC1F_0);
+    TIM3->CCMR1 |= (TIM_CCMR1_IC2F_3 | TIM_CCMR1_IC2F_2 | TIM_CCMR1_IC2F_0);
     TIM3->CNT = 36;                   // Reset cnt
 }
 
@@ -25,10 +25,24 @@ void getEncoderData(void)
 {
 	LIMIT_UP_CNT();
 	LIMIT_DOWN_CNT();
-	cnt = (uint8_t)((TIM3->CNT - 36) / 4);
+	cnt = (uint8_t)((TIM3->CNT - 18) / 2);
 }
 
 uint8_t getCntValue(void)
 {
     return cnt;
+}
+
+void updateTIM2Freq(void)
+{
+    // Получаем обновлённое значение cnt из энкодера
+    getEncoderData();
+    uint8_t val = getCntValue();  // 0..9 (если лимиты 18..36 и деление на 2)
+
+    // Преобразуем его в частоту или период (чем больше val — тем выше частота)
+    // Например: базовый ARR = 1000, диапазон 100–2000
+    uint16_t newARR = 2000 - (val * 200); // уменьшение ARR повышает частоту
+    if (newARR < 100) newARR = 100;
+
+    TIM2->ARR = newARR;
 }
