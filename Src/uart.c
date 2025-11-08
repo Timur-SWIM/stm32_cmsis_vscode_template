@@ -90,8 +90,11 @@ void ExecuteCommand(void)
 	/* Обработчик команд */
 	if (strncmp(RxBuffer,"*IDN?",5) == 0)					//Это команда "*IDN?"
 	{
-		//Она самая, возвращаем строку идентификации
-		strcpy(TxBuffer,"It'ssa me, Mario!");
+		#ifdef MRT32
+		strcpy(TxBuffer,"MTR73");
+		#else
+		strcpy(TxBuffer,"KMM73");
+		#endif
 
 	}
 	else if (strncmp(RxBuffer,"SET",3) == 0)				//Команда запуска таймера?
@@ -100,17 +103,17 @@ void ExecuteCommand(void)
 		sscanf(RxBuffer,"%*s %hu", &set_value);
 		if ((0 <= set_value) && (set_value <= 9))		//параметр должен быть в заданных пределах!
 		{
-			TIM3->CNT = set_value; //!!!!
+			TIM3->CNT = set_value * 4 + 36; //!!!!
 			strcpy(TxBuffer, "OK");
 		}
 		else
 			strcpy(TxBuffer, "Parameter is out of range");
 
-		strcpy(TxBuffer, "OK");
+		//strcpy(TxBuffer, "OK");
 	}
 	else if (strncmp(RxBuffer,"GET",3) == 0)				//Команда остановки таймера?
 	{
-		uint32_t counter_value = TIM3->CNT;
+		uint32_t counter_value = (TIM3->CNT - 36) / 4; //!!!!
 		sniprintf(TxBuffer, sizeof(TxBuffer), "%lu", counter_value); //!!!!
 	}
 	else if (strncmp(RxBuffer,"PERIOD",6) == 0)				//Команда изменения периода таймера?
@@ -131,13 +134,7 @@ void ExecuteCommand(void)
 	else
 		strcpy(TxBuffer,"Invalid Command");					//Если мы не знаем, чего от нас хотят, ругаемся в ответ
 
-	// Передача принятой строки обратно одним из двух способов
-	#ifdef USE_DMA
-		txStrWithDMA(TxBuffer, true);
-	#else
-		txStr(TxBuffer, true);
-	#endif
-
+	txStr(TxBuffer, true);
 	memset(RxBuffer,0,RX_BUFF_SIZE);						//Очистка буфера приёма
 	ComReceived = false;									//Сбрасываем флаг приёма строки
 }
