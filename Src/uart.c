@@ -8,31 +8,20 @@ volatile uint8_t RxIndex = 0;
 
 void USART2_IRQHandler(void)
 {
-    if ((USART2->SR & USART_SR_RXNE) == 0)
-    {
-        char data = USART2->DR;
+	if ((USART2->SR & USART_SR_RXNE)!=0)		//Прерывание по приёму данных
+	{
+		uint8_t pos = strlen(RxBuffer);			//Вычисляем позицию свободной ячейки
 
-        if (RxIndex < RX_BUFF_SIZE - 1)
-        {
-            RxBuffer[RxIndex++] = data;
+		RxBuffer[pos] = USART2->DR;				//Считываем содержимое регистра данных
 
-            // Проверяем, что в буфере как минимум 2 символа
-            if (RxIndex > 1 &&
-                RxBuffer[RxIndex - 1] == '\n' &&
-                RxBuffer[RxIndex - 2] == '\r')
-            {
-                RxBuffer[RxIndex] = '\0';  // Завершаем строку
-                ComReceived = true;
-                RxIndex = 0;               // Сброс индекса
-            }
-        }
-        else
-        {
-            // Переполнение буфера — сброс
-            RxIndex = 0;
-        }
-    }
+		if ((RxBuffer[pos]== 0x0A) && (RxBuffer[pos-1]== 0x0D))							//Если это символ конца строки
+		{
+			ComReceived = true;					//- выставляем флаг приёма строки
+			return;								//- и выходим
+		}
+	}
 }
+
 
 
 /**
@@ -153,11 +142,7 @@ void ExecuteCommand(void)
 	ComReceived = false;									//Сбрасываем флаг приёма строки
 }
 
-<<<<<<< HEAD
-bool COM_RECIVED(void)
-=======
 bool COM_RECEIVED(void)
->>>>>>> c201b30b5ac9113081253c7a981716bf72ec5a01
 {
     return ComReceived;
 }
