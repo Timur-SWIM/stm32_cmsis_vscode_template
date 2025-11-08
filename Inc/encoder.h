@@ -10,4 +10,6 @@ void initEncoderTIM3(void);
 void getEncoderData(void);
 uint8_t getCntValue(void);
 
+void updateTIM2Freq(void);
+
 #endif /* ENCODER_H_ */

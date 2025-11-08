@@ -11,5 +11,6 @@ void setDisplay(uint8_t cnt);
 void initLED(void);
 void init_button(void);
 void initTIM2(void);
+void updateDisplayIfChanged(uint8_t newValue);
 
 #endif

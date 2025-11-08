@@ -82,11 +82,13 @@ int main(void)
     while(true)
     {
     	getEncoderData();
-		cnt = getCntValue();
-    	setDisplay(cnt);
+		cnt = 0;
+    	//setDisplay(getCntValue());
+		updateDisplayIfChanged(getCntValue());
 		if (COM_RECEIVED()) {
 			ExecuteCommand();
 		}
+		//updateTIM2Freq();
     }
 }
 

@@ -103,7 +103,7 @@ void ExecuteCommand(void)
 		sscanf(RxBuffer,"%*s %hu", &set_value);
 		if ((0 <= set_value) && (set_value <= 9))		//параметр должен быть в заданных пределах!
 		{
-			TIM3->CNT = set_value * 4 + 36; //!!!!
+			TIM3->CNT = set_value * 2 + 18; //!!!!
 			strcpy(TxBuffer, "OK");
 		}
 		else
@@ -113,7 +113,7 @@ void ExecuteCommand(void)
 	}
 	else if (strncmp(RxBuffer,"GET",3) == 0)				//Команда остановки таймера?
 	{
-		uint32_t counter_value = (TIM3->CNT - 36) / 4; //!!!!
+		uint32_t counter_value = (TIM3->CNT - 18) / 2; //!!!!
 		sniprintf(TxBuffer, sizeof(TxBuffer), "%lu", counter_value); //!!!!
 	}
 	else if (strncmp(RxBuffer,"PERIOD",6) == 0)				//Команда изменения периода таймера?

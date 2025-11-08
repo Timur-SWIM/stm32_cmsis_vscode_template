@@ -11,7 +11,7 @@ void initEncoderTIM3(void)
     GPIOA->CRL &= ~(GPIO_CRL_CNF6 | GPIO_CRL_CNF7);
     GPIOA->CRL |= (GPIO_CRL_CNF6_1 | GPIO_CRL_CNF7_1);
 	// Configure TIM3 for encoder interface                                                                     
-    TIM3->ARR = 36;
+    TIM3->ARR = 40;
     TIM3->CCMR1 = TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_0; // Capture on TI1 and TI2
     TIM3->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);    // Rising edge polarity
     TIM3->SMCR = TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0;      // Enable encoder mode 3 (Counts on both TI1 and TI2 edges)
@@ -26,6 +26,8 @@ void getEncoderData(void)
 	LIMIT_UP_CNT();
 	LIMIT_DOWN_CNT();
 	cnt = (uint8_t)((TIM3->CNT - 18) / 2);
+
+
 }
 
 uint8_t getCntValue(void)
@@ -36,13 +38,23 @@ uint8_t getCntValue(void)
 void updateTIM2Freq(void)
 {
     // Получаем обновлённое значение cnt из энкодера
-    getEncoderData();
+    //getEncoderData();
     uint8_t val = getCntValue();  // 0..9 (если лимиты 18..36 и деление на 2)
 
     // Преобразуем его в частоту или период (чем больше val — тем выше частота)
     // Например: базовый ARR = 1000, диапазон 100–2000
     uint16_t newARR = 2000 - (val * 200); // уменьшение ARR повышает частоту
     if (newARR < 100) newARR = 100;
+    if (newARR > 2000) newARR = 2000;
 
+    static uint16_t lastARR = 0;
+    if (newARR == lastARR) {
+        return; // Значение не изменилось, выходим
+    }
+    lastARR = newARR;
+
+    TIM2->PSC = 64000 - 1;
     TIM2->ARR = newARR;
+    TIM2->EGR |= TIM_EGR_UG; // Обновляем регистры таймера новыми значениями
+
 }
