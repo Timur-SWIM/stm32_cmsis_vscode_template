@@ -1,5 +1,8 @@
 #include "display.h"
 #include "main.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 char led_num = 0x003F;
 
 void setDisplay(uint8_t cnt)
@@ -104,13 +107,17 @@ void initTIM2(void)
 	NVIC_SetPriority(TIM2_IRQn, 2);			/*Выставляем приоритет единицу*/
 }
 
-void updateDisplayIfChanged(uint8_t newValue)
+bool updateDisplayIfChanged(uint8_t newValue)
 {
     static uint8_t lastValue = 255; // Хранит предыдущее значение (255 — "ничего ещё не было")
+	bool val_changed = false;
 
     if (newValue != lastValue)      // Проверяем, изменилось ли значение
     {
         setDisplay(newValue);       // Обновляем индикацию
         lastValue = newValue;       // Запоминаем новое значение
+		val_changed = true;
     }
+
+	return val_changed;            // Возвращаем флаг изменения
 }

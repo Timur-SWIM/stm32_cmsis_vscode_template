@@ -1,4 +1,5 @@
 #include "uart.h"
+#include <stdbool.h>
 
 char RxBuffer[RX_BUFF_SIZE];			//Буфер приёма USART
 char TxBuffer[TX_BUFF_SIZE];			//Буфер передачи USART
@@ -45,12 +46,12 @@ void initUSART2(void)
 	Скорость передачи данных - 19200
 	Частота шины APB1 - 32МГц
 
-	1. USARTDIV = 32'000'000/(16*19200) = 104,1667
-	2. 104 = 0x68
-	3. 16*0.2 = 3
-	4. Итого 0x683
+	1. USARTDIV = 32'000'000/(16*57600) = 34,7222
+	2. 34 = 0x22
+	3. 16*0.7 = 11,2 ~ 11 = 0xB
+	4. Итого 0x22B
 	*****************************************/
-	USART2->BRR = 0x683;
+	USART2->BRR = 0x22B;
 
 	USART2->CR1 |= USART_CR1_RE | USART_CR1_TE | USART_CR1_UE;
 	USART2->CR1 |= USART_CR1_RXNEIE;						//разрешить прерывание по приему байта данных
@@ -82,7 +83,7 @@ void txStr(char *str, bool crlf)
   * @param  None
   * @retval None
   */
-void ExecuteCommand(void)
+void ExecuteCommand(bool val_changed)
 {
 //	txStr(RxBuffer, false);
 	memset(TxBuffer,0,sizeof(TxBuffer));					//Очистка буфера передачи
@@ -93,7 +94,7 @@ void ExecuteCommand(void)
 		#ifdef MRT32
 		strcpy(TxBuffer,"MTR73");
 		#else
-		strcpy(TxBuffer,"KMM73");
+		strcpy(TxBuffer,"Kupriyanov M. M., Myaldzin T. R., IU4-73B");
 		#endif
 
 	}
@@ -130,6 +131,14 @@ void ExecuteCommand(void)
 		}
 		else
 			strcpy(TxBuffer, "Parameter is out of range");	//ругаемся
+	}
+	else if (val_changed) {
+		int32_t counter_value = (int32_t)TIM3->CNT - 18;
+		if (counter_value < 0)
+    		counter_value = 0;
+		counter_value /= 2;
+		sniprintf(TxBuffer, sizeof(TxBuffer), "%ld", counter_value);
+
 	}
 	else
 		strcpy(TxBuffer,"Invalid Command");					//Если мы не знаем, чего от нас хотят, ругаемся в ответ

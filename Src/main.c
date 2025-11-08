@@ -78,15 +78,16 @@ int main(void)
 	initTIM2();
 	initEncoderTIM3();
 	initUSART2();
-	uint8_t cnt = 0;
+	bool val_changed = false;
     while(true)
     {
     	getEncoderData();
-		cnt = 0;
-    	//setDisplay(getCntValue());
-		updateDisplayIfChanged(getCntValue());
+		val_changed = updateDisplayIfChanged(getCntValue());
 		if (COM_RECEIVED()) {
-			ExecuteCommand();
+			ExecuteCommand(val_changed);
+		}
+		if (val_changed) {
+			ExecuteCommand(val_changed);
 		}
 		//updateTIM2Freq();
     }

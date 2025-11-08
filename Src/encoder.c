@@ -18,7 +18,7 @@ void initEncoderTIM3(void)
     TIM3->CR1 |= TIM_CR1_CEN;                          // Enable timer
     TIM3->CCMR1 |= (TIM_CCMR1_IC1F_3 | TIM_CCMR1_IC1F_2 | TIM_CCMR1_IC1F_0);
     TIM3->CCMR1 |= (TIM_CCMR1_IC2F_3 | TIM_CCMR1_IC2F_2 | TIM_CCMR1_IC2F_0);
-    TIM3->CNT = 18;                   // Reset cnt
+    TIM3->CNT = 12;                   // Reset cnt
 }
 
 void getEncoderData(void)
