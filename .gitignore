@@ -22,6 +22,7 @@ Makefile
 *~
 # Mac OS
 .DS_Store
+stm32f103xb_flash.ld
 
 # SW specific
 *.log
