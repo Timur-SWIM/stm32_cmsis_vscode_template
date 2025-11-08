@@ -11,14 +11,14 @@ void initEncoderTIM3(void)
     GPIOA->CRL &= ~(GPIO_CRL_CNF6 | GPIO_CRL_CNF7);
     GPIOA->CRL |= (GPIO_CRL_CNF6_1 | GPIO_CRL_CNF7_1);
 	// Configure TIM3 for encoder interface                                                                     
-    TIM3->ARR = 73;
+    TIM3->ARR = 36;
     TIM3->CCMR1 = TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_0; // Capture on TI1 and TI2
     TIM3->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);    // Rising edge polarity
     TIM3->SMCR = TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0;      // Enable encoder mode 3 (Counts on both TI1 and TI2 edges)
     TIM3->CR1 |= TIM_CR1_CEN;                          // Enable timer
     TIM3->CCMR1 |= (TIM_CCMR1_IC1F_3 | TIM_CCMR1_IC1F_2 | TIM_CCMR1_IC1F_0);
     TIM3->CCMR1 |= (TIM_CCMR1_IC2F_3 | TIM_CCMR1_IC2F_2 | TIM_CCMR1_IC2F_0);
-    TIM3->CNT = 36;                   // Reset cnt
+    TIM3->CNT = 18;                   // Reset cnt
 }
 
 void getEncoderData(void)
