@@ -153,7 +153,11 @@ void ExecuteCommand(void)
 	ComReceived = false;									//Сбрасываем флаг приёма строки
 }
 
+<<<<<<< HEAD
 bool COM_RECIVED(void)
+=======
+bool COM_RECEIVED(void)
+>>>>>>> c201b30b5ac9113081253c7a981716bf72ec5a01
 {
     return ComReceived;
 }
