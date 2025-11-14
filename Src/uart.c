@@ -3,7 +3,7 @@
 
 char RxBuffer[RX_BUFF_SIZE];			//Буфер приёма USART
 char TxBuffer[TX_BUFF_SIZE];			//Буфер передачи USART
-volatile bool ComReceived;				//Флаг приёма строки данных
+volatile bool ComReceived;				//Флаг приёма строки данных (volatile - считывание из памяти, а не кэша, т.к. меняется в прерывании)
 volatile uint8_t RxIndex = 0; 			//Индекс для приёма данных
 
 /**
@@ -13,16 +13,16 @@ volatile uint8_t RxIndex = 0; 			//Индекс для приёма данных
   */
 void USART2_IRQHandler(void)
 {
-	if ((USART2->SR & USART_SR_RXNE)!=0)		//Прерывание по приёму данных
+	if ((USART2->SR & USART_SR_RXNE)!=0)								//Status register: read data register not empty
 	{
-		uint8_t pos = strlen(RxBuffer);			//Вычисляем позицию свободной ячейки
+		uint8_t pos = strlen(RxBuffer);									//Количество байт до /0 (конца строки), куда будем писать следующий байт
 
-		RxBuffer[pos] = USART2->DR;				//Считываем содержимое регистра данных
+		RxBuffer[pos] = USART2->DR;										//Считываем содержимое регистра данных 1 байт (при чтении SR автоматически очищается бит RXNE)
 
-		if ((RxBuffer[pos]== 0x0A) && (RxBuffer[pos-1]== 0x0D))							//Если это символ конца строки
+		if ((RxBuffer[pos]== 0x0A) && (RxBuffer[pos-1]== 0x0D))			//Если это символ конца строки
 		{
-			ComReceived = true;					//- выставляем флаг приёма строки
-			return;								//- и выходим
+			ComReceived = true;											//- выставляем флаг приёма строки
+			return;														//- и выходим
 		}
 	}
 }
@@ -33,15 +33,17 @@ void USART2_IRQHandler(void)
   */
 void initUSART2(void)
 {
-	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;						//включить тактирование порта A
 	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;						//включить тактирование альтернативных ф-ций портов
 	RCC->APB1ENR |= RCC_APB1ENR_USART2EN;					//включить тактирование UART2
 
-	GPIOA->CRL &= ~(GPIO_CRL_MODE2 | GPIO_CRL_CNF2);		//PA2 на выход
-	GPIOA->CRL |= (GPIO_CRL_MODE2_1 | GPIO_CRL_CNF2_1);
+	//PA2 на выход
+	GPIOA->CRL &= ~(GPIO_CRL_MODE2 | GPIO_CRL_CNF2);		
+	GPIOA->CRL |= (GPIO_CRL_MODE2_1 | GPIO_CRL_CNF2_1);		//MODE=10, Output 2 MHZ; CNF=10 Alternate function push-pull
 
-	GPIOA->CRL &= ~(GPIO_CRL_MODE3 | GPIO_CRL_CNF3);		//PA3 - вход
-	GPIOA->CRL |= GPIO_CRL_CNF3_0;
+	//PA3 на вход
+	GPIOA->CRL &= ~(GPIO_CRL_MODE3 | GPIO_CRL_CNF3);		
+	GPIOA->CRL |= GPIO_CRL_CNF3_0;							//MODE=00, Input mode; CNF=01 Floating input
 
 	/*****************************************
 	Скорость передачи данных - 57600 бод
@@ -52,10 +54,10 @@ void initUSART2(void)
 	3. 16*0.7 = 11,2 ~ 11 = 0xB
 	4. Итого 0x22B
 	*****************************************/
-	USART2->BRR = 0x22B;
+	USART2->BRR = 0x22B;		//baud rate register в 34.7222
 
-	USART2->CR1 |= USART_CR1_RE | USART_CR1_TE | USART_CR1_UE;
-	USART2->CR1 |= USART_CR1_RXNEIE;						//разрешить прерывание по приему байта данных
+	USART2->CR1 |= USART_CR1_RE | USART_CR1_TE | USART_CR1_UE;	//разрешить приём, передачу и сам USART
+	USART2->CR1 |= USART_CR1_RXNEIE;							//разрешить прерывание по приему байта данных (rx not empty interrupt enable)
 
 	NVIC_EnableIRQ(USART2_IRQn);
 }
@@ -76,7 +78,7 @@ void txStr(char *str, bool crlf)
 	for (i = 0; i < strlen(str); i++)
 	{
 		USART2->DR = str[i];								//передаём байт данных
-		while ((USART2->SR & USART_SR_TC)==0) {};			//ждём окончания передачи
+		while ((USART2->SR & USART_SR_TC)==0) {};			//ждём окончания передачи (transmission complete)
 	}
 }
 /**
@@ -86,29 +88,29 @@ void txStr(char *str, bool crlf)
   */
 void ExecuteCommand(void)
 {
-	memset(TxBuffer,0,sizeof(TxBuffer));					//Очистка буфера передачи
+	memset(TxBuffer,0,sizeof(TxBuffer));					//Очистка буфера передачи (заполнение нулями)
 
 	/* Обработчик команд */
-	if (strncmp(RxBuffer,"*IDN?",5) == 0)					//Это команда "*IDN?"
+	if (strncmp(RxBuffer,"*IDN?",5) == 0)					//Это команда "*IDN?" размером 5 символов?
 	{
 		strcpy(TxBuffer,"Kupriyanov M. M., Myaldzin T. R., IU4-73B");
 	}
-	else if (strncmp(RxBuffer,"SET",3) == 0)				//Команда запуска таймера?
+	else if (strncmp(RxBuffer,"SET",3) == 0)				//Команда установления значения?
 	{
 		uint16_t set_value;
-		sscanf(RxBuffer,"%*s %hu", &set_value);
-		if ((set_value <= 9))		//параметр должен быть в заданных пределах!
+		sscanf(RxBuffer,"%*s %hu", &set_value);		//преобразуем строку в целое число (игнор charов, счит unsigned short)
+		if ((set_value <= 9))						//параметр должен быть в заданных пределах! (уже unsigned)
 		{
-			TIM3->CNT = set_value * 2 + 18; //!!!!
+			TIM3->CNT = set_value * 2 + 18;			//преобразуем значение 0..9 в значение счётчика энкодера
 			strcpy(TxBuffer, "OK");
 		}
 		else
 			strcpy(TxBuffer, "Parameter is out of range");
 	}
-	else if (strncmp(RxBuffer,"GET",3) == 0)				//Команда остановки таймера?
+	else if (strncmp(RxBuffer,"GET",3) == 0)							//Команда получения значения?
 	{
-		uint32_t counter_value = (TIM3->CNT - 18) / 2; //!!!!
-		sniprintf(TxBuffer, sizeof(TxBuffer), "%lu", counter_value); //!!!!
+		uint32_t counter_value = (TIM3->CNT - 18) / 2;					//Преобразуем значение счётчика энкодера в значение 0..9
+		sniprintf(TxBuffer, sizeof(TxBuffer), "%lu", counter_value);	//формируем строку с числом (unsigned long)
 	}
 	else if (strncmp(RxBuffer,"PERIOD",6) == 0)				//Команда изменения периода таймера?
 	{
@@ -117,8 +119,8 @@ void ExecuteCommand(void)
 
 		if ((100 <= tim_value) && (tim_value <= 5000))		//параметр должен быть в заданных пределах!
 		{
-			TIM2->ARR = tim_value;  //!!!!
-			TIM2->CNT = 0;          //!!!!
+			TIM2->ARR = tim_value;							//Обновляем Auto-Reload Register новым значением
+			TIM2->CNT = 0;        							//Сбрасываем текущее значение счётчика, чтобы не ждать следующего переполнения
 
 			strcpy(TxBuffer, "OK");
 		}
@@ -128,8 +130,8 @@ void ExecuteCommand(void)
 	else
 		strcpy(TxBuffer,"Invalid Command");					//Если мы не знаем, чего от нас хотят, ругаемся в ответ
 
-	txStr(TxBuffer, true);
-	memset(RxBuffer,0,RX_BUFF_SIZE);						//Очистка буфера приёма
+	txStr(TxBuffer, true);						//Передача строки ответа с добавлением символов конца строки	
+	memset(RxBuffer,0,RX_BUFF_SIZE);						//Очистка буфера приёма (заполнение нулями)
 	ComReceived = false;									//Сбрасываем флаг приёма строки
 }
 
@@ -139,10 +141,10 @@ void ExecuteCommand(void)
   * @retval None
   */
 void PrintNumDisplay(void) {
-	uint32_t counter_value = TIM3->CNT - 18;
-	counter_value >>= 1;
-	sniprintf(TxBuffer, sizeof(TxBuffer), "%ld", counter_value);
-	txStr(TxBuffer, true);
+	uint32_t counter_value = TIM3->CNT - 18;							//Получаем значение счётчика энкодера с учётом смещения
+	counter_value >>= 1;												//(деление на 2 в 1 степени) Преобразуем значение счётчика энкодера в значение 0..9			
+	sniprintf(TxBuffer, sizeof(TxBuffer), "%ld", counter_value);		//формируем строку с числом (long decimal)
+	txStr(TxBuffer, true);									//Передача строки ответа с добавлением символов конца строки
 }
 
 /**
@@ -150,7 +152,7 @@ void PrintNumDisplay(void) {
   * @param  None
   * @retval true - данные получены, false - данных нет
   */
-bool COM_RECEIVED(void)
+bool COM_RECEIVED(void)		//возврат состояния флага приёма данных (нельзя передать в другой файл напрямую)
 {
     return ComReceived;
 }
