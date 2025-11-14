@@ -3,8 +3,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-char led_num = 0x003F;
 
+char led_num = 0x003F; //Изначально отображаем 0
+
+/**
+  * @brief  Установка числа на семисегментный индикатор
+  * @param  cnt - число для отображения (0-9)
+  * @retval None
+  */
 void setDisplay(uint8_t cnt)
 {
 	switch (cnt)
@@ -43,7 +49,11 @@ void setDisplay(uint8_t cnt)
 
 	SET_LED_NUM(led_num);
 }
-
+/**
+  * @brief  Инициализация светодиодов на порту C
+  * @param  None
+  * @retval None
+  */
 void initLED(void)
 {
 	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;	/*	Включаем тактирование порта C	*/
@@ -62,7 +72,11 @@ void initLED(void)
 	GPIOC->CRL &=~GPIO_CRL_CNF6;		/*	CNF=00 push-pull для 6 пина	*/
 	GPIOC->CRL |= GPIO_CRL_MODE6;		/*	MODE=11, Output 50 MHZ для 6 пина	*/
 }
-
+/**
+  * @brief  Инициализация кнопки на порту C
+  * @param  None
+  * @retval None
+  */
 void init_button(void)
 {
 	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN | RCC_APB2ENR_AFIOEN;	/*	Включаем тактирование порта C	*/
@@ -74,7 +88,11 @@ void init_button(void)
 	NVIC_EnableIRQ(EXTI15_10_IRQn);								/*Разрешили обработку прерываний с линий с 10 по 15*/
 	NVIC_SetPriority(EXTI15_10_IRQn, 1);						/*Выставили единственному прерыванию самый большой приоритет*/
 }
-
+/**
+  * @brief  Обработчик прерывания по кнопке на PC13
+  * @param  None
+  * @retval None
+  */
 void EXTI15_10_IRQHandler(void)									/*Функция для обработки прерываний, вызывается автоматически*/
 {
 	if ((EXTI->PR & EXTI_PR_PR13) != 0)							/*PR - регистр, каждый бит которого соотв. флагу прерывания на опр. линии*/
@@ -87,13 +105,21 @@ void EXTI15_10_IRQHandler(void)									/*Функция для обработк
 		EXTI->PR |= EXTI_PR_PR13;								/*Очищаем флаг прерывания, чтобы не зайти в него повторно*/
 	}
 }
-
+/**
+  * @brief  Обработчик прерывания по таймеру 2
+  * @param  None
+  * @retval None
+  */
 void TIM2_IRQHandler(void)
 {
 	LED_NUM_SWAP(led_num);
 	TIM2->SR &= ~TIM_SR_UIF;									/*UIF - Update Interrupt Flag - программное очищение флага путем записывания нуля*/
 }
-
+/**
+  * @brief  Инициализация таймера 2 для генерации прерываний с частотой 1Гц
+  * @param  None
+  * @retval None
+  */
 void initTIM2(void)
 {
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;		/*Включаем тактирование на шине APB1, на которой таймер*/
@@ -106,18 +132,19 @@ void initTIM2(void)
 	NVIC_EnableIRQ(TIM2_IRQn);				/*Разрешаем NVIC обработку прерываний*/
 	NVIC_SetPriority(TIM2_IRQn, 2);			/*Выставляем приоритет единицу*/
 }
-
-bool updateDisplayIfChanged(uint8_t newValue)
+/**
+  * @brief  Обновление индикации на дисплее, если значение изменилось
+  * @param  newValue - новое значение для отображения (0-9)
+  * @retval None
+  */
+void updateDisplayIfChanged(uint8_t newValue)
 {
     static uint8_t lastValue = 255; // Хранит предыдущее значение (255 — "ничего ещё не было")
-	bool val_changed = false;
 
     if (newValue != lastValue)      // Проверяем, изменилось ли значение
     {
         setDisplay(newValue);       // Обновляем индикацию
+		PrintNumDisplay();              // Печатаем текущее значение на UART
         lastValue = newValue;       // Запоминаем новое значение
-		val_changed = true;
     }
-
-	return val_changed;            // Возвращаем флаг изменения
 }

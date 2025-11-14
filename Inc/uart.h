@@ -12,7 +12,8 @@
 void USART2_IRQHandler(void);
 void initUSART2(void);
 void txStr(char *str, bool crlf);
-void ExecuteCommand(bool val_changed);
+void ExecuteCommand(void);
 bool COM_RECEIVED(void);
+void PrintNumDisplay(void);
 
 #endif

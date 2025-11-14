@@ -4,9 +4,13 @@
 char RxBuffer[RX_BUFF_SIZE];			//Буфер приёма USART
 char TxBuffer[TX_BUFF_SIZE];			//Буфер передачи USART
 volatile bool ComReceived;				//Флаг приёма строки данных
+volatile uint8_t RxIndex = 0; 			//Индекс для приёма данных
 
-volatile uint8_t RxIndex = 0;
-
+/**
+  * @brief  Обработчик прерывания по USART2
+  * @param  None
+  * @retval None
+  */
 void USART2_IRQHandler(void)
 {
 	if ((USART2->SR & USART_SR_RXNE)!=0)		//Прерывание по приёму данных
@@ -22,9 +26,6 @@ void USART2_IRQHandler(void)
 		}
 	}
 }
-
-
-
 /**
   * @brief  Инициализация USART2
   * @param  None
@@ -43,7 +44,7 @@ void initUSART2(void)
 	GPIOA->CRL |= GPIO_CRL_CNF3_0;
 
 	/*****************************************
-	Скорость передачи данных - 19200
+	Скорость передачи данных - 57600 бод
 	Частота шины APB1 - 32МГц
 
 	1. USARTDIV = 32'000'000/(16*57600) = 34,7222
@@ -83,34 +84,26 @@ void txStr(char *str, bool crlf)
   * @param  None
   * @retval None
   */
-void ExecuteCommand(bool val_changed)
+void ExecuteCommand(void)
 {
-//	txStr(RxBuffer, false);
 	memset(TxBuffer,0,sizeof(TxBuffer));					//Очистка буфера передачи
 
 	/* Обработчик команд */
 	if (strncmp(RxBuffer,"*IDN?",5) == 0)					//Это команда "*IDN?"
 	{
-		#ifdef MRT32
-		strcpy(TxBuffer,"MTR73");
-		#else
 		strcpy(TxBuffer,"Kupriyanov M. M., Myaldzin T. R., IU4-73B");
-		#endif
-
 	}
 	else if (strncmp(RxBuffer,"SET",3) == 0)				//Команда запуска таймера?
 	{
 		uint16_t set_value;
 		sscanf(RxBuffer,"%*s %hu", &set_value);
-		if ((0 <= set_value) && (set_value <= 9))		//параметр должен быть в заданных пределах!
+		if ((set_value <= 9))		//параметр должен быть в заданных пределах!
 		{
 			TIM3->CNT = set_value * 2 + 18; //!!!!
 			strcpy(TxBuffer, "OK");
 		}
 		else
 			strcpy(TxBuffer, "Parameter is out of range");
-
-		//strcpy(TxBuffer, "OK");
 	}
 	else if (strncmp(RxBuffer,"GET",3) == 0)				//Команда остановки таймера?
 	{
@@ -132,14 +125,6 @@ void ExecuteCommand(bool val_changed)
 		else
 			strcpy(TxBuffer, "Parameter is out of range");	//ругаемся
 	}
-	else if (val_changed) {
-		int32_t counter_value = (int32_t)TIM3->CNT - 18;
-		if (counter_value < 0)
-    		counter_value = 0;
-		counter_value /= 2;
-		sniprintf(TxBuffer, sizeof(TxBuffer), "%ld", counter_value);
-
-	}
 	else
 		strcpy(TxBuffer,"Invalid Command");					//Если мы не знаем, чего от нас хотят, ругаемся в ответ
 
@@ -148,6 +133,23 @@ void ExecuteCommand(bool val_changed)
 	ComReceived = false;									//Сбрасываем флаг приёма строки
 }
 
+/**
+  * @brief  Печать текущего значения счётчика энкодера
+  * @param  None
+  * @retval None
+  */
+void PrintNumDisplay(void) {
+	uint32_t counter_value = TIM3->CNT - 18;
+	counter_value >>= 1;
+	sniprintf(TxBuffer, sizeof(TxBuffer), "%ld", counter_value);
+	txStr(TxBuffer, true);
+}
+
+/**
+  * @brief  Проверка флага приёма данных
+  * @param  None
+  * @retval true - данные получены, false - данных нет
+  */
 bool COM_RECEIVED(void)
 {
     return ComReceived;

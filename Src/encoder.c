@@ -2,7 +2,11 @@
 #include <stdint.h>
 
 uint8_t	cnt = 0;
-
+/**
+  * @brief  Инициализация таймера 3 для работы с энкодером
+  * @param  None
+  * @retval None
+  */
 void initEncoderTIM3(void)
 {
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 		// Enable GPIOA clock
@@ -20,21 +24,31 @@ void initEncoderTIM3(void)
     TIM3->CCMR1 |= (TIM_CCMR1_IC2F_3 | TIM_CCMR1_IC2F_2 | TIM_CCMR1_IC2F_0);
     TIM3->CNT = 12;                   // Reset cnt
 }
-
+/**
+  * @brief  Получение данных с энкодера и ограничение значений
+  * @param  None
+  * @retval None
+  */
 void getEncoderData(void)
 {
 	LIMIT_UP_CNT();
 	LIMIT_DOWN_CNT();
 	cnt = (uint8_t)((TIM3->CNT - 18) / 2);
-
-
 }
-
+/**
+  * @brief  Получение текущего значения счётчика энкодера
+  * @param  None
+  * @retval Текущее значение счётчика
+  */
 uint8_t getCntValue(void)
 {
     return cnt;
 }
-
+/**
+  * @brief  Обновление частоты таймера 2 на основе значения энкодера
+  * @param  None
+  * @retval None
+  */
 void updateTIM2Freq(void)
 {
     // Получаем обновлённое значение cnt из энкодера
