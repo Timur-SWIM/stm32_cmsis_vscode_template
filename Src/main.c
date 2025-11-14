@@ -30,7 +30,12 @@ void delay(uint32_t delay_value)
 	for(uint32_t i = 0; i < delay_value; i++);
 }
 
-void init_clk(void)												/*Настройка внешнего генератора как источник тактирования на 64МГц*/
+/**
+* @brief  Настройка тактирования на 64МГц с внешнего генератора
+  * @param  None
+  * @retval None
+*/
+void init_clk(void)				/*Настройка внешнего генератора как источник тактирования на 64МГц*/
 {
 	// Enable HSI
 	RCC->CR |= RCC_CR_HSION;
@@ -78,18 +83,13 @@ int main(void)
 	initTIM2();
 	initEncoderTIM3();
 	initUSART2();
-	bool val_changed = false;
     while(true)
     {
     	getEncoderData();
-		val_changed = updateDisplayIfChanged(getCntValue());
+		updateDisplayIfChanged(getCntValue());
 		if (COM_RECEIVED()) {
-			ExecuteCommand(val_changed);
+			ExecuteCommand();
 		}
-		if (val_changed) {
-			ExecuteCommand(val_changed);
-		}
-		//updateTIM2Freq();
     }
 }
 
